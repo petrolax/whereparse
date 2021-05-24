@@ -49,36 +49,66 @@ func findFirstOper(src []string) int {
 	return -1
 }
 
-func formRequest(src []string) []sq.Sqlizer { //src []string, qb *sq.SelectBuilder) []sq.Sqlizer {
+func formRequest(src []string, checkValidity func(colName string, value interface{}) error) ([]sq.Sqlizer, error) { //src []string, qb *sq.SelectBuilder) []sq.Sqlizer {
 	operIdx := findFirstOper(src)
 	oper := src[operIdx]
 	switch oper {
 	case "AND":
 		res := make(sq.And, 0)
 		if operIdx < 3 {
+			if err := checkValidity(src[0], nil); err != nil {
+				return nil, err
+			}
 			res = append(res, sq.Expr(src[0]))
 			src = src[2:]
 		} else {
 			switch src[1] {
 			case "=":
-				res = append(res, sq.Eq(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.Eq(val))
 				break
 			case "!=", "<>":
-				res = append(res, sq.NotEq(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.NotEq(val))
 				break
 			case ">":
-				res = append(res, sq.Gt(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.Gt(val))
 				break
 			case ">=":
-				res = append(res, sq.GtOrEq(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.GtOrEq(val))
 				break
 			case "<":
-				res = append(res, sq.Lt(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.Lt(val))
 				break
 			case "<=":
-				res = append(res, sq.LtOrEq(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.LtOrEq(val))
 				break
 			case "~", "!~":
+				if err := checkValidity(src[0], src[2]); err != nil {
+					return nil, err
+				}
 				res = append(res, sq.Expr(fmt.Sprintf("%s %s ?", src[0], src[1]), src[2]))
 				break
 			}
@@ -88,69 +118,137 @@ func formRequest(src []string) []sq.Sqlizer { //src []string, qb *sq.SelectBuild
 		if len(src) > 3 {
 			switch src[operIdx] {
 			case "AND":
-				res = append(res, sq.And(formRequest(src)))
+				val, err := formRequest(src, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.And(val))
 				break
 			case "OR":
-				res = append(res, sq.Or(formRequest(src)))
+				val, err := formRequest(src, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.Or(val))
 				break
 			}
 		} else {
 			if len(src) < 3 {
+				if err := checkValidity(src[0], nil); err != nil {
+					return nil, err
+				}
 				res = append(res, sq.Expr(src[0]))
 			} else {
 				switch src[1] {
 				case "=":
-					res = append(res, sq.Eq(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.Eq(val))
 					break
 				case "!=", "<>":
-					res = append(res, sq.NotEq(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.NotEq(val))
 					break
 				case ">":
-					res = append(res, sq.Gt(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.Gt(val))
 					break
 				case ">=":
-					res = append(res, sq.GtOrEq(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.GtOrEq(val))
 					break
 				case "<":
-					res = append(res, sq.Lt(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.Lt(val))
 					break
 				case "<=":
-					res = append(res, sq.LtOrEq(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.LtOrEq(val))
 					break
 				case "~", "!~":
+					if err := checkValidity(src[0], src[2]); err != nil {
+						return nil, err
+					}
 					res = append(res, sq.Expr(fmt.Sprintf("%s %s ?", src[0], src[1]), src[2]))
 					break
 				}
 			}
 		}
-		return res
+		return res, nil
 
 	case "OR":
 		res := make(sq.Or, 0)
 		if operIdx < 3 {
+			if err := checkValidity(src[0], nil); err != nil {
+				return nil, err
+			}
 			res = append(res, sq.Expr(src[0]))
 			src = src[2:]
 		} else {
 			switch src[1] {
 			case "=":
-				res = append(res, sq.Eq(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.Eq(val))
 				break
 			case "!=", "<>":
-				res = append(res, sq.NotEq(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.NotEq(val))
 				break
 			case ">":
-				res = append(res, sq.Gt(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.Gt(val))
 				break
 			case ">=":
-				res = append(res, sq.GtOrEq(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.GtOrEq(val))
 				break
 			case "<":
-				res = append(res, sq.Lt(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.Lt(val))
 				break
 			case "<=":
-				res = append(res, sq.LtOrEq(setExpression(src[:3])))
+				val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.LtOrEq(val))
 				break
 			case "~", "!~":
+				if err := checkValidity(src[0], src[2]); err != nil {
+					return nil, err
+				}
 				res = append(res, sq.Expr(fmt.Sprintf("%s %s ?", src[0], src[1]), src[2]))
 				break
 			}
@@ -160,63 +258,104 @@ func formRequest(src []string) []sq.Sqlizer { //src []string, qb *sq.SelectBuild
 		if checkLogOper(src) {
 			switch src[operIdx] {
 			case "AND":
-				res = append(res, sq.And(formRequest(src)))
+				val, err := formRequest(src, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.And(val))
 				break
 			case "OR":
-				res = append(res, sq.Or(formRequest(src)))
+				val, err := formRequest(src, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				res = append(res, sq.Or(val))
 				break
 			}
 		} else {
 			if len(src) < 3 {
+				if err := checkValidity(src[0], nil); err != nil {
+					return nil, err
+				}
 				res = append(res, sq.Expr(src[0]))
 			} else {
 				switch src[1] {
 				case "=":
-					res = append(res, sq.Eq(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.Eq(val))
 					break
 				case "!=", "<>":
-					res = append(res, sq.NotEq(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.NotEq(val))
 					break
-				case ">":
-					res = append(res, sq.Gt(setExpression(src[:3])))
+				case ">":val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.Gt(val))
 					break
 				case ">=":
-					res = append(res, sq.GtOrEq(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.GtOrEq(val))
 					break
 				case "<":
-					res = append(res, sq.Lt(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.Lt(val))
 					break
 				case "<=":
-					res = append(res, sq.LtOrEq(setExpression(src[:3])))
+					val, err := setExpression(src[:3], checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+					res = append(res, sq.LtOrEq(val))
 					break
 				case "~", "!~":
+					if err := checkValidity(src[0], src[2]); err != nil {
+						return nil, err
+					}
 					res = append(res, sq.Expr(fmt.Sprintf("%s %s ?", src[0], src[1]), src[2]))
 					break
 				}
 			}
 		}
-		return res
+		return res, nil
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
-func setExpression(src []string) map[string]interface{} {
+func setExpression(src []string, checkValidity func(colName string, value interface{}) error) (map[string]interface{}, error) {
+	if err := checkValidity(src[0], src[2]); err != nil{
+		return nil, err
+	}
+	
 	switch src[1] {
 	case "=":
-		return sq.Eq{src[0]: src[2]}
+		return sq.Eq{src[0]: src[2]}, nil
 	case "!=", "<>":
-		return sq.NotEq{src[0]: src[2]}
+		return sq.NotEq{src[0]: src[2]}, nil
 	case ">":
-		return sq.Gt{src[0]: src[2]}
+		return sq.Gt{src[0]: src[2]}, nil
 	case ">=":
-		return sq.GtOrEq{src[0]: src[2]}
+		return sq.GtOrEq{src[0]: src[2]}, nil
 	case "<":
-		return sq.Lt{src[0]: src[2]}
+		return sq.Lt{src[0]: src[2]}, nil
 	case "<=":
-		return sq.LtOrEq{src[0]: src[2]}
+		return sq.LtOrEq{src[0]: src[2]}, nil
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
@@ -234,7 +373,7 @@ func checkLogOper(src []string) bool {
 	return false
 }
 
-func Parse(query string, qb sq.SelectBuilder) (*sq.SelectBuilder, error) {
+func Parse(query string, qb sq.SelectBuilder, checkValidity func(colName string, value interface{}) error) (*sq.SelectBuilder, error) {
 	if len(query) == 0 {
 		return nil, errors.New("No query")
 	}
@@ -249,36 +388,74 @@ func Parse(query string, qb sq.SelectBuilder) (*sq.SelectBuilder, error) {
 	if checkLogOper(expressions) {
 		switch expressions[findFirstOper(expressions)] {
 		case "AND":
-			qb = qb.Where(sq.And(formRequest(expressions)))
+			val, err := formRequest(expressions, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+			qb = qb.Where(sq.And(val))
 			break
 		case "OR":
-			qb = qb.Where(sq.Or(formRequest(expressions)))
+			val, err := formRequest(expressions, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+			qb = qb.Where(sq.Or(val))
 			break
 		}
 	} else {
 		if len(expressions) < 3 {
+			if err := checkValidity(expressions[0], nil); err != nil {
+				return nil, err
+			}
 			qb = qb.Where(sq.Expr(expressions[0]))
 		} else {
 			switch expressions[1] {
 			case "=":
-				qb = qb.Where(sq.Eq(setExpression(expressions)))
+				val, err := setExpression(expressions, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				qb = qb.Where(sq.Eq(val))
 				break
 			case "!=", "<>":
-				qb = qb.Where(sq.NotEq(setExpression(expressions)))
+				val, err := setExpression(expressions, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				qb = qb.Where(sq.NotEq(val))
 				break
 			case ">":
-				qb = qb.Where(sq.Gt(setExpression(expressions)))
+				val, err := setExpression(expressions, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				qb = qb.Where(sq.Gt(val))
 				break
 			case ">=":
-				qb = qb.Where(sq.GtOrEq(setExpression(expressions)))
+				val, err := setExpression(expressions, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				qb = qb.Where(sq.GtOrEq(val))
 				break
 			case "<":
-				qb = qb.Where(sq.Lt(setExpression(expressions)))
+				val, err := setExpression(expressions, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				qb = qb.Where(sq.Lt(val))
 				break
 			case "<=":
-				qb = qb.Where(sq.LtOrEq(setExpression(expressions)))
+				val, err := setExpression(expressions, checkValidity)
+				if err!= nil {
+					return nil, err
+				}
+				qb = qb.Where(sq.LtOrEq(val))
 				break
 			case "~", "!~":
+				if err := checkValidity(expressions[0], expressions[2]); err != nil {
+					return nil, err
+				}
 				qb = qb.Where(sq.Expr(expressions[0], expressions[2]))
 				break
 			}

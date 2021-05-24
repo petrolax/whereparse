@@ -16,6 +16,7 @@ func TestParse(t *testing.T) {
 		"SELECT * WHERE (Alice.IsActive AND Bob.LastHash = ?)",
 		"No query",
 		"The query contains a LIMIT expression",
+		"SELECT * WHERE (Hello.World OR Hello.War)",
 	}
 	input := []string{
 		"Alice.Name ~ 'A.*`' OR Bob.LastName !~ 'Bill.*`'",
@@ -25,11 +26,12 @@ func TestParse(t *testing.T) {
 		"SELECT * WHERE Alice.IsActive AND Bob.LastHash = 'ab5534b'",
 		"",
 		"SELECT * WHERE Alice.IsActive AND Bob.LastHash = 'ab5534b' LIMIT 3",
+		"Hello.World OR Hello.War",
 	}
 
 	for i, data := range input {
 		builder := sq.Select("*")
-		newbuilder, err := Parse(data, builder)
+		newbuilder, err := Parse(data, builder, func(colName string, value interface{}) error {return nil}) //Добавьте вашу функцию-обработчик
 		if err != nil {
 			if err.Error() == want[i] {
 				continue
